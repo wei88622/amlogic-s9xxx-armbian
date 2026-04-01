@@ -183,3 +183,27 @@ todo_rootfs_resize="/root/.no_rootfs_resize"
 
 # Finalization
 log_message "All custom services have been processed successfully."
+
+#========================================================================================
+# Disable first login forced password change (from customize-image.sh)
+# 禁用首次登录强制修改密码
+#========================================================================================
+
+# Remove first login flag file
+rm -f /root/.not_logged_in_yet
+log_message "Removed first login flag file."
+
+# Set root password to never expire
+chage -d 99999 root 2>/dev/null || true
+chage -m 0 -M 99999 -I -1 -E -1 root 2>/dev/null || true
+log_message "Set root password to never expire."
+
+# Ensure root password is set to 1234
+echo "root:1234" | chpasswd 2>/dev/null || true
+log_message "Set root password to 1234."
+
+# Disable first login configuration services
+systemctl disable armbian-firstlogin 2>/dev/null || true
+systemctl disable armbian-firstrun 2>/dev/null || true
+systemctl disable armbian-firstrun-config 2>/dev/null || true
+log_message "Disabled first login configuration services."
