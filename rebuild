@@ -1151,7 +1151,22 @@ refactor_rootfs() {
 
     # Improve systemd startup speed, avoid timeout waiting
     armbian_firstlogin="usr/lib/armbian/armbian-firstlogin"
-    [[ -f "${armbian_firstlogin}" ]] && sed -i "s#.*systemctl is-system-running.*#	timeout 120s systemctl is-system-running --wait > /dev/null 2>\&1 || true#g" "${armbian_firstlogin}"
+    [[ -f "${armbian_firstlogin}" ]] && sed -i "s#.*systemctl is-system-running.*#\ttimeout 120s systemctl is-system-running --wait > /dev/null 2>\&1 || true#g" "${armbian_firstlogin}"
+
+    # Disable forced password change on first login
+    # 禁用首次登录强制修改密码
+    [[ -f "${armbian_firstlogin}" ]] && {
+        # Comment out the password expiration setting
+        sed -i 's|passwd -e root|# passwd -e root|g' "${armbian_firstlogin}"
+        # Comment out the forced password change prompt
+        sed -i 's|chage -d 0 root|# chage -d 0 root|g' "${armbian_firstlogin}"
+    }
+    # Ensure root password never expires in shadow file
+    shadow_file="etc/shadow"
+    [[ -f "${shadow_file}" ]] && {
+        # Remove password expiration (set to 99999 days)
+        sed -i 's|^root:\([^:]*\):\([^:]*\):\([^:]*\):\([^:]*\):\([^:]*\):\([^:]*\):\([^:]*\)|root:\1:\2:0:99999:7:::|g' "${shadow_file}"
+    }
 
     # Fix abnormal CPU temperature
     temp_file="usr/lib/armbian/armbian-allwinner-battery"
