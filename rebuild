@@ -1168,6 +1168,26 @@ refactor_rootfs() {
         sed -i 's|^root:\([^:]*\):\([^:]*\):\([^:]*\):\([^:]*\):\([^:]*\):\([^:]*\):\([^:]*\)|root:\1:\2:0:99999:7:::|g' "${shadow_file}"
     }
 
+    # Additional settings from customize-image.sh
+    # 禁用首次登录强制改密码相关标记文件
+    rm -f root/.not_logged_in_yet
+    
+    # 设置 root 密码永不过期
+    [[ -f "${shadow_file}" ]] && {
+        chage -d 99999 root 2>/dev/null || true
+        chage -m 0 -M 99999 -I -1 -E -1 root 2>/dev/null || true
+    }
+    
+    # 预设 root 密码为 1234
+    echo "root:1234" | chpasswd 2>/dev/null || true
+    
+    # 彻底关闭首次配置服务
+    [[ -d "etc/systemd/system" ]] && {
+        systemctl disable armbian-firstlogin 2>/dev/null || true
+        systemctl disable armbian-firstrun 2>/dev/null || true
+        systemctl disable armbian-firstrun-config 2>/dev/null || true
+    }
+
     # Fix abnormal CPU temperature
     temp_file="usr/lib/armbian/armbian-allwinner-battery"
     [[ -f "${temp_file}" ]] && {
